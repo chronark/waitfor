@@ -76,6 +76,7 @@ func main() {
 
 	err := waitFor(pflag.Arg(0), *timeout, *quiet)
   if err != nil {
+	fmt.Println(err)
     os.Exit(1)
   }
 
