@@ -67,6 +67,7 @@ func main() {
 
 	if len(pflag.Args()) != 1 {
 		fmt.Println("waitfor requires exactly one argument: 'host:port'")
+		fmt.Printf("You called it with: %s\n", pflag.Args())
 		os.Exit(1)
 	}
 	if !strings.Contains(pflag.Arg(0), ":") {
