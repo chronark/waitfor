@@ -34,7 +34,6 @@ func waitFor(target string, timeout uint, quiet bool) error {
 	}
 	conn, err := net.DialTimeout("tcp", target, time.Duration(timeout)*time.Second)
 	if err != nil {
-		fmt.Printf("Could not connect to %s, timed out after %d seconds.\n", target, timeout)
 		return err
 	}
 	if conn != nil {
