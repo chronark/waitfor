@@ -29,18 +29,22 @@ func waitFor(target string, timeout uint, quiet bool) error {
 		if timeout > 0 {
 			fmt.Printf("Waiting for %s to start within %d seconds.\n", target, timeout)
 		} else {
-			fmt.Printf("Waiting for %s forever...\n", target)
+			fmt.Printf("Waiting for %s indefinitely ... \n", target)
 		}
 	}
 	conn, err := net.DialTimeout("tcp", target, time.Duration(timeout)*time.Second)
+	if conn != nil {
+		defer conn.Close()
+	}
+	if err, ok := err.(*net.OpError); ok && err.Timeout() {
+		return fmt.Errorf("timed out after %d seconds", timeout)
+	}
 	if err != nil {
 		return err
 	}
-	if conn != nil {
-		defer conn.Close()
-		fmt.Printf("%s is up and running.\n", target)
-	}
+
 	return nil
+
 }
 
 func catchHelp() {
@@ -75,10 +79,12 @@ func main() {
 	}
 
 	err := waitFor(pflag.Arg(0), *timeout, *quiet)
-  if err != nil {
-	fmt.Println(err)
-    os.Exit(1)
-  }
-
-  os.Exit(0)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	if !*quiet {
+		fmt.Printf("%s is up and running.\n", pflag.Arg(0))
+	}
+	os.Exit(0)
 }
