@@ -21,6 +21,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -32,18 +33,33 @@ func waitFor(target string, timeout uint, quiet bool) error {
 			fmt.Printf("Waiting for %s indefinitely ... \n", target)
 		}
 	}
-	conn, err := net.DialTimeout("tcp", target, time.Duration(timeout)*time.Second)
-	if conn != nil {
-		defer conn.Close()
-	}
-	if err, ok := err.(*net.OpError); ok && err.Timeout() {
-		return fmt.Errorf("timed out after %d seconds", timeout)
-	}
-	if err != nil {
-		return err
-	}
+	var depChan = make(chan struct{})
+	var wg sync.WaitGroup
+	services := []string{target}
+	wg.Add(len(services))
+	go func() {
+		for _, s := range services {
+			go func(s string) {
+				defer wg.Done()
+				for {
+					_, err := net.Dial("tcp", s)
+					if err == nil {
+						return
+					}
+					time.Sleep(1 * time.Second)
+				}
+			}(s)
+		}
+		wg.Wait()
+		close(depChan)
+	}()
 
-	return nil
+	select {
+	case <-depChan: // services are ready
+		return nil
+	case <-time.After(time.Second * time.Duration(timeout)):
+		return fmt.Errorf("services aren't ready in %d", timeout)
+	}
 
 }
 
